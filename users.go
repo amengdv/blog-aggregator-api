@@ -145,3 +145,30 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, req *http.Request)
         RefreshToken: refreshToken,
     })
 }
+
+func (cfg *apiConfig) deleteUserHandler(w http.ResponseWriter, req *http.Request, user database.User) {
+    idQuery := req.PathValue("userID")
+    if len(idQuery) == 0 {
+        respondWithError(w, http.StatusInternalServerError, "No id provided")
+        return
+    }
+    _, err := uuid.Parse(idQuery)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, "ID is not a UUID type")
+        return
+    }
+
+    if idQuery != user.ID.String() {
+        respondWithError(w, http.StatusUnauthorized, "Unauthorized User")
+        return
+    }
+
+    err = cfg.DB.DeleteUser(req.Context(), user.ID)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, "Fail to delete user, try again")
+        return
+    }
+
+    w.WriteHeader(http.StatusNoContent)
+}
+

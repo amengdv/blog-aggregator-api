@@ -45,6 +45,9 @@ func main() {
     mux.HandleFunc("GET /v1/errors", errHandler)
 
     mux.HandleFunc("POST /v1/users", cfg.createUserHandler)
+    mux.HandleFunc("PUT /v1/users", cfg.authMiddleware(cfg.updateUserHandler))
+    mux.HandleFunc("DELETE /v1/users/{userID}", cfg.authMiddleware(cfg.deleteUserHandler))
+
     mux.HandleFunc("POST /v1/login", cfg.loginUserHandler)
 
     httpServer := &http.Server{
