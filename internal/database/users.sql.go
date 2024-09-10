@@ -83,19 +83,23 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, password FROM users
+SELECT id, created_at, updated_at, email, name, password, refresh_token, tkn_expires_at FROM users
 WHERE email = $1
 `
 
-type GetUserByEmailRow struct {
-	ID       uuid.UUID
-	Password string
-}
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i GetUserByEmailRow
-	err := row.Scan(&i.ID, &i.Password)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.Name,
+		&i.Password,
+		&i.RefreshToken,
+		&i.TknExpiresAt,
+	)
 	return i, err
 }
 
@@ -117,79 +121,29 @@ func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshToken
 	return err
 }
 
-const updateUserEmail = `-- name: UpdateUserEmail :one
+const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET email = $2, updated_at = $3
+SET email = $2, name = $3, password = $4, updated_at = $5
 WHERE id = $1
 RETURNING id, created_at, updated_at, email, name, password, refresh_token, tkn_expires_at
 `
 
-type UpdateUserEmailParams struct {
+type UpdateUserParams struct {
 	ID        uuid.UUID
 	Email     string
-	UpdatedAt time.Time
-}
-
-func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUserEmail, arg.ID, arg.Email, arg.UpdatedAt)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Email,
-		&i.Name,
-		&i.Password,
-		&i.RefreshToken,
-		&i.TknExpiresAt,
-	)
-	return i, err
-}
-
-const updateUserName = `-- name: UpdateUserName :one
-UPDATE users
-SET name = $2, updated_at = $3
-WHERE id = $1
-RETURNING id, created_at, updated_at, email, name, password, refresh_token, tkn_expires_at
-`
-
-type UpdateUserNameParams struct {
-	ID        uuid.UUID
 	Name      string
-	UpdatedAt time.Time
-}
-
-func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUserName, arg.ID, arg.Name, arg.UpdatedAt)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Email,
-		&i.Name,
-		&i.Password,
-		&i.RefreshToken,
-		&i.TknExpiresAt,
-	)
-	return i, err
-}
-
-const updateUserPassword = `-- name: UpdateUserPassword :one
-UPDATE users
-SET password = $2, updated_at = $3
-WHERE id = $1
-RETURNING id, created_at, updated_at, email, name, password, refresh_token, tkn_expires_at
-`
-
-type UpdateUserPasswordParams struct {
-	ID        uuid.UUID
 	Password  string
 	UpdatedAt time.Time
 }
 
-func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUserPassword, arg.ID, arg.Password, arg.UpdatedAt)
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.ID,
+		arg.Email,
+		arg.Name,
+		arg.Password,
+		arg.UpdatedAt,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,

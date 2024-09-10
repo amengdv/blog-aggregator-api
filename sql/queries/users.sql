@@ -14,24 +14,12 @@ SELECT * FROM users
 WHERE id = $1;
 
 -- name: GetUserByEmail :one
-SELECT id, password FROM users
+SELECT * FROM users
 WHERE email = $1; 
 
--- name: UpdateUserEmail :one
+-- name: UpdateUser :one
 UPDATE users
-SET email = $2, updated_at = $3
-WHERE id = $1
-RETURNING *;
-
--- name: UpdateUserName :one
-UPDATE users
-SET name = $2, updated_at = $3
-WHERE id = $1
-RETURNING *;
-
--- name: UpdateUserPassword :one
-UPDATE users
-SET password = $2, updated_at = $3
+SET email = $2, name = $3, password = $4, updated_at = $5
 WHERE id = $1
 RETURNING *;
 

@@ -12,6 +12,7 @@ import (
 
 var (
     decodeJsonError string = "Failure decoding request body"
+    hashingPassErr string = "Failure hashing password"
 )
 
 func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, req *http.Request) {
@@ -38,7 +39,7 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, req *http.Request
 
     hashedPass, err := bcrypt.GenerateFromPassword([]byte(requestBody.Password), bcrypt.DefaultCost)
     if err != nil {
-        respondWithError(w, http.StatusInternalServerError, "Failure hashing password")
+        respondWithError(w, http.StatusInternalServerError, hashingPassErr)
         return
     }
 
@@ -93,6 +94,11 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, req *http.Request)
     userInfo, err := cfg.DB.GetUserByEmail(req.Context(), reqBody.Email)
     if err != nil {
         respondWithError(w, http.StatusInternalServerError, "User Does Not Exist")
+        return
+    }
+
+    if userInfo.RefreshToken.Valid == false {
+        respondWithError(w, http.StatusBadRequest, "User already logged in on another device")
         return
     }
 
@@ -172,3 +178,34 @@ func (cfg *apiConfig) deleteUserHandler(w http.ResponseWriter, req *http.Request
     w.WriteHeader(http.StatusNoContent)
 }
 
+func (cfg *apiConfig) updateUserHandler(w http.ResponseWriter, req *http.Request, user database.User) {
+    type Request struct {
+        Email string `json:"email"`
+        Name string `json:"name"`
+        Password string `json:"password"`
+    }
+
+    reqBody := Request{}
+
+    err := decodeJson(req, &reqBody)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, decodeJsonError)
+        return
+    }
+
+    hashedPass, err := bcrypt.GenerateFromPassword([]byte(reqBody.Password), bcrypt.DefaultCost)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, hashingPassErr)
+        return
+    }
+
+    updatedUser, err := cfg.DB.UpdateUser(req.Context(), database.UpdateUserParams{
+        ID: user.ID,
+        Email: reqBody.Email,
+        Name: reqBody.Name,
+        Password: string(hashedPass),
+        UpdatedAt: time.Now().UTC(),
+    })
+
+    respondWithJson(w, http.StatusCreated, respondWithUserSec(updatedUser))
+}
