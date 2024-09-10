@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 )
@@ -31,5 +32,19 @@ func respondWithJson(w http.ResponseWriter, code int, payload any) {
 
     w.WriteHeader(code)
     w.Write(data)
+}
+
+func decodeJson(req *http.Request, payload any) error {
+    body, err := io.ReadAll(req.Body)
+    if err != nil {
+        return err
+    }
+
+    err = json.Unmarshal(body, payload)
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
 
