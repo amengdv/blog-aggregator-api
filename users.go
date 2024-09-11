@@ -10,10 +10,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-    decodeJsonError string = "Failure decoding request body"
-    hashingPassErr string = "Failure hashing password"
-)
 
 func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, req *http.Request) {
     // Expected Request
@@ -97,14 +93,14 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, req *http.Request)
         return
     }
 
-    if userInfo.RefreshToken.Valid == false {
-        respondWithError(w, http.StatusBadRequest, "User already logged in on another device")
-        return
-    }
-
     err = authenticatePassword(reqBody.Password, userInfo.Password)
     if err != nil {
         respondWithError(w, http.StatusUnauthorized, "Wrong Password!")
+        return
+    }
+
+    if userInfo.RefreshToken.Valid == true {
+        respondWithError(w, http.StatusBadRequest, "User already logged in on another device")
         return
     }
 
@@ -130,7 +126,7 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, req *http.Request)
             Valid: true,
         },
         TknExpiresAt: sql.NullTime{
-            Time: time.Now().Add(1440 * time.Hour),
+            Time: time.Now().Add(days_60),
             Valid: true,
         },
         ID: userInfo.ID,

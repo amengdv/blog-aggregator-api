@@ -49,6 +49,10 @@ func main() {
     mux.HandleFunc("DELETE /v1/users/{userID}", cfg.authMiddleware(cfg.deleteUserHandler))
 
     mux.HandleFunc("POST /v1/login", cfg.loginUserHandler)
+    mux.HandleFunc("POST /v1/refresh", cfg.refreshTokenHandler)
+    mux.HandleFunc("POST /v1/revoke", cfg.revokeRefreshTokenHandler)
+
+    mux.HandleFunc("POST /v1/feeds", cfg.authMiddleware(cfg.createFeedsHandler))
 
     httpServer := &http.Server{
         Addr: ":" + PORT,

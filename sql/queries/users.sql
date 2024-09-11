@@ -27,3 +27,11 @@ RETURNING *;
 DELETE FROM users
 WHERE id = $1;
 
+-- name: GetTokenInfo :one
+SELECT * FROM users
+WHERE refresh_token = $1;
+
+-- name: RevokeToken :exec
+UPDATE users
+SET refresh_token = NULL, tkn_expires_at = NULL
+WHERE refresh_token = $1;

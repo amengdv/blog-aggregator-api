@@ -51,6 +51,21 @@ func generateRefreshToken() (string, error) {
     return rt, nil
 }
 
+func getAuthorizationBearer(req *http.Request) string {
+    authHeader := req.Header.Get("Authorization")
+    if len(authHeader) == 0 {
+        return ""
+    }
+
+    splitAuth := strings.Split(authHeader, " ")
+    if splitAuth[0] != "Bearer" {
+        return ""
+    }
+
+    return splitAuth[1]
+
+}
+
 func (cfg *apiConfig) authMiddleware(handler authHandler) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         authToken := r.Header.Get("Authorization")

@@ -61,6 +61,27 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getTokenInfo = `-- name: GetTokenInfo :one
+SELECT id, created_at, updated_at, email, name, password, refresh_token, tkn_expires_at FROM users
+WHERE refresh_token = $1
+`
+
+func (q *Queries) GetTokenInfo(ctx context.Context, refreshToken sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getTokenInfo, refreshToken)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.Name,
+		&i.Password,
+		&i.RefreshToken,
+		&i.TknExpiresAt,
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id, created_at, updated_at, email, name, password, refresh_token, tkn_expires_at FROM users
 WHERE id = $1
@@ -101,6 +122,17 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.TknExpiresAt,
 	)
 	return i, err
+}
+
+const revokeToken = `-- name: RevokeToken :exec
+UPDATE users
+SET refresh_token = NULL, tkn_expires_at = NULL
+WHERE refresh_token = $1
+`
+
+func (q *Queries) RevokeToken(ctx context.Context, refreshToken sql.NullString) error {
+	_, err := q.db.ExecContext(ctx, revokeToken, refreshToken)
+	return err
 }
 
 const updateRefreshToken = `-- name: UpdateRefreshToken :exec
