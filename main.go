@@ -53,6 +53,11 @@ func main() {
     mux.HandleFunc("POST /v1/revoke", cfg.revokeRefreshTokenHandler)
 
     mux.HandleFunc("POST /v1/feeds", cfg.authMiddleware(cfg.createFeedsHandler))
+    mux.HandleFunc("GET /v1/feeds", cfg.getAllFeedsHandler)
+
+    mux.HandleFunc("POST /v1/feed_follows", cfg.authMiddleware(cfg.followFeedsHandler))
+    mux.HandleFunc("GET /v1/feed_follows", cfg.authMiddleware(cfg.getFeedFollowsHandler))
+    mux.HandleFunc("DELETE /v1/feed_follows/{feedFollowID}", cfg.authMiddleware(cfg.deleteFeedFollowsHandler))
 
     httpServer := &http.Server{
         Addr: ":" + PORT,
