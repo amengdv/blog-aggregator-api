@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/amengdv/blog-aggregator-api/internal/database"
 	"github.com/joho/godotenv"
@@ -63,6 +64,10 @@ func main() {
         Addr: ":" + PORT,
         Handler: mux,
     }
+
+    const limit = 10
+    const interval = time.Second * 10
+    go fetchWorkers(dbQueries, limit, interval)
 
     fmt.Println("Starting Server and Listening on port ", PORT)
     log.Fatal(httpServer.ListenAndServe())
