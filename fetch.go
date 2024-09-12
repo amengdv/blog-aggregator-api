@@ -2,15 +2,18 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/amengdv/blog-aggregator-api/internal/database"
+	"github.com/google/uuid"
 )
 
 type RSS struct {
@@ -54,10 +57,37 @@ func fetchXMLFromUrl(link string) (RSS, error) {
     return rss, nil
 }
 
-func printTitleFromItem(rss RSS) {
+func createAndStorePost(db *database.Queries, rss RSS, feed database.Feed) {
     items := rss.Channel.Items
-    for i, item := range items {
-        fmt.Printf("%v, %d: %v\n",rss.Channel.Title, i, item.Title)
+    for _, item := range items {
+        publishedAt := sql.NullTime{}
+        if t, err := time.Parse(time.RFC1123Z, item.PubDate); err == nil {
+            publishedAt = sql.NullTime{
+                Time: t,
+                Valid: true,
+            }
+        }
+
+        _, err := db.CreatePost(context.Background(), database.CreatePostParams{
+            ID: uuid.New(),
+            CreatedAt: time.Now(),
+            UpdatedAt: time.Now(),
+            Title: item.Title,
+            Url: item.Link,
+            Description: sql.NullString {
+                String: item.Description,
+            },
+            PublishedAt: publishedAt,
+            FeedID: feed.ID,
+        })
+
+        if err != nil {
+            if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+                continue
+            }
+            log.Printf("Couldn't create post: %v\n", err)
+            continue
+        }
     }
 }
 
@@ -94,5 +124,5 @@ func processFeeds(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) 
         return
     }
 
-    printTitleFromItem(rss)
+    createAndStorePost(db, rss, feed)
 }

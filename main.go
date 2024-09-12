@@ -60,6 +60,8 @@ func main() {
     mux.HandleFunc("GET /v1/feed_follows", cfg.authMiddleware(cfg.getFeedFollowsHandler))
     mux.HandleFunc("DELETE /v1/feed_follows/{feedFollowID}", cfg.authMiddleware(cfg.deleteFeedFollowsHandler))
 
+    mux.HandleFunc("GET /v1/posts/", cfg.authMiddleware(cfg.getPostsByUserHandler))
+
     httpServer := &http.Server{
         Addr: ":" + PORT,
         Handler: mux,
